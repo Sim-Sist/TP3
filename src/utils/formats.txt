@@ -1,0 +1,13 @@
+static-info
+Header:
+    tamaño
+    cant de partículas
+Body:
+    radio, color, masa
+
+dynamic-info
+Body:
+    nro evento
+    tc
+    pc1,pc2 #partículas que colisionaron (siempre son dos, salvo por el estado inicial)
+    x y vx vy #una linea por cada partícula
