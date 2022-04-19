@@ -12,6 +12,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import output.*;
+import output.logging.Logger;
 import particles.fx.Color;
 
 public class Space {

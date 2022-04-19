@@ -4,7 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
-import output.Logger;
+import output.logging.Logger;
+import output.logging.ProgressBar;
 import particles.Particle;
 import particles.Space;
 
@@ -12,8 +13,8 @@ public class SimulationManager {
     /**** Logging ****/
     private static final boolean DEBUG = true;
     /**** Default Values ****/
-    private static final double SIZE = 100; // L
-    private static final int DEFAULT_PARTICLES_AMOUNT = 1000; // N
+    private static final double SIZE = 20; // L
+    private static final int DEFAULT_PARTICLES_AMOUNT = 10; // N
     private static final double MIN_RADIUS = 1, MAX_RADIUS = 2;
     private static final double CONSTANT_RADIUS = 0;
     private static final double DEFAULT_MAX_VELOCITY = 0.2;
@@ -22,7 +23,7 @@ public class SimulationManager {
     private final static double DEFAULT_BIG_RADIUS = 0.7, DEFAULT_SMALL_RADIUS = 0.2;
 
     /**** Analysis values ****/
-    private static final int MAX_STEPS = 1000;
+    private static final int MAX_STEPS = 5000;
 
     /**** Analysis utils ****/
     private int steps = 1;
@@ -59,11 +60,17 @@ public class SimulationManager {
                 DEFAULT_BIG_MASS);
         space.setVelocities(0, DEFAULT_MAX_VELOCITY);
 
+        ProgressBar pBar;
+        try {
+            pBar = logger.progressBar(MAX_STEPS);
+        } catch (Exception e) {
+            return;
+        }
+
         space.initialize();
         if (DEBUG) {
             String stepMsg = String.format("==================Step 0");
             logger.logFile(stepMsg + "\n");
-            logger.log(stepMsg);
             logger.logFile(space.toString());
         }
 
@@ -73,16 +80,17 @@ public class SimulationManager {
 
             space.computeNextStep();
             errors = errors || !tester.testSpace(steps);
+            pBar.next();
 
             if (DEBUG) {
                 String stepMsg = String.format("==================Step %d", steps);
                 logger.logFile(stepMsg + "\n");
-                logger.log(stepMsg);
                 logger.logFile(space.toString());
             }
 
             steps++;
         }
+        pBar.abort();
 
         logger.log(String.format("%sERRORS DETECTED", errors ? "" : "NO "));
 
