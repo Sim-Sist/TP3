@@ -6,6 +6,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
 import java.util.SortedSet;
@@ -36,7 +38,7 @@ public class Space {
     private Logger logger = new Logger("space");
     private CollisionManager cManager;
     private int step;
-    private SortedSet<Event> eventsArray = new TreeSet<>(Event::compareTo);
+    private Queue<Event> eventsQueue = new PriorityQueue<>(Event::compareTo);
     private double elapsedSimTime = 0;
     // private Particle[] collisionParticles = new Particle[2];
 
@@ -90,6 +92,7 @@ public class Space {
     }
 
     public void initialize() {
+        logger.log("Initializing...");
         generateSystem();
     }
 
@@ -158,7 +161,6 @@ public class Space {
             }
             particles[i] = p;
         }
-        this.eventsArray.addAll(cManager.computeCollisions());
         outputInitialState();
     }
 
@@ -167,33 +169,35 @@ public class Space {
     }
 
     public Event getNextEvent() {
-        return this.eventsArray.first();
+        return this.eventsQueue.peek();
     }
 
     @SuppressWarnings("unchecked")
     public void computeNextStep() {
-        // GET NEXT
-        Event collsionEvent = getNextEvent();
-        List<Particle> eventParticles = collsionEvent.getParticles();
+        if (step == 0) {
+            eventsQueue.addAll(cManager.computeAllCollisions());
+        }
+        outputNextState();
 
-        double deltaT = cManager.updateTime(collsionEvent);
+        // GET NEXT
+        Event collsionEvent = eventsQueue.poll();
 
         // UPDATE
         // Llevo todas las particulas hasta el punto de la colision.
+        double deltaT = cManager.updateTime(collsionEvent);
         for (Particle p : particles) {
             p.update(deltaT);
         }
         // Veo como rebotan las que colisionaron. -> update state
-        cManager.collision(eventParticles);
+        cManager.resolveCollision(collsionEvent);
 
-        // TRACE NEW
-        // Remove all events containing the involved particles, since their paths will
-        // be recalculated
-        this.eventsArray.removeIf(e -> !Collections.disjoint(eventParticles, e.getParticles()));
-        this.eventsArray.addAll(cManager.wallCollision(eventParticles));
-        this.eventsArray.addAll(cManager.particleCollision(eventParticles));
+        eventsQueue.removeIf(e -> e.includes(collsionEvent.getP1()) ||
+                e.includes(collsionEvent.getP2()));
 
-        outputNextState();
+        eventsQueue.addAll(cManager.predictCollisions(collsionEvent.getP1()));
+        if (collsionEvent.isParticleCollision()) {
+            eventsQueue.addAll(cManager.predictCollisions(collsionEvent.getP2()));
+        }
 
         step++;
     }
@@ -206,8 +210,8 @@ public class Space {
         return particles;
     }
 
-    public Set<Event> getEvents() {
-        return this.eventsArray;
+    public Queue<Event> getEvents() {
+        return this.eventsQueue;
     }
 
     public void setStaticFileName(String filename) {
@@ -250,7 +254,7 @@ public class Space {
             str.append(p).append('\n');
         }
         str.append("-Events:\n");
-        for (Event e : eventsArray) {
+        for (Event e : eventsQueue) {
             str.append(e).append('\n');
         }
         str.append("-Next Event: ").append(getNextEvent()).append('\n');

@@ -38,21 +38,16 @@ public class Event implements Comparable<Event> {
         return p2;
     }
 
-    public List<Particle> getParticles() {
-        List<Particle> list = new LinkedList<>();
-        if (p1 != null)
-            list.add(p1);
-        if (p2 != null)
-            list.add(p2);
-        return list;
-    }
-
     public boolean isWallCollision() {
         return p2 == null;
     }
 
     public boolean isParticleCollision() {
         return p2 != null;
+    }
+
+    public boolean includes(Particle p) {
+        return getP1().equals(p) || (isParticleCollision() && getP2().equals(p));
     }
 
     @Override
@@ -68,8 +63,7 @@ public class Event implements Comparable<Event> {
             return false;
         Event ep = (Event) o;
         return Math.abs(this.time - ep.getTime()) < EPSILON &&
-                this.getParticles().size() == ep.getParticles().size() &&
-                this.getParticles().containsAll(ep.getParticles());
+                (ep.includes(getP1()) && ep.includes(getP2()));
     }
 
     @Override
@@ -78,8 +72,9 @@ public class Event implements Comparable<Event> {
         str.append("Event: ");
         str.append(String.format("[ time: %g || ", this.time));
         int index = 0;
-        for (Particle p : getParticles()) {
-            str.append(String.format("p%d:%d", index++, p.getIndex())).append(' ');
+        str.append(String.format("p%d:%d", index++, getP1().getIndex())).append(' ');
+        if (isParticleCollision()) {
+            str.append(String.format("p%d:%d", index++, getP2().getIndex())).append(' ');
         }
         str.append("]");
 

@@ -13,8 +13,8 @@ public class SimulationManager {
     /**** Logging ****/
     private static final boolean DEBUG = true;
     /**** Default Values ****/
-    private static final double SIZE = 20; // L
-    private static final int DEFAULT_PARTICLES_AMOUNT = 10; // N
+    private static final double SIZE = 500; // L
+    private static final int DEFAULT_PARTICLES_AMOUNT = 10000; // N
     private static final double MIN_RADIUS = 1, MAX_RADIUS = 2;
     private static final double CONSTANT_RADIUS = 0;
     private static final double DEFAULT_MAX_VELOCITY = 0.2;
@@ -23,10 +23,10 @@ public class SimulationManager {
     private final static double DEFAULT_BIG_RADIUS = 0.7, DEFAULT_SMALL_RADIUS = 0.2;
 
     /**** Analysis values ****/
-    private static final int MAX_STEPS = 5000;
+    private static final int MAX_STEPS = 3000;
 
     /**** Analysis utils ****/
-    private int steps = 1;
+    private int steps = 0;
 
     /**** Final parameters ****/
     private int usedParticlesAmount;
@@ -68,24 +68,22 @@ public class SimulationManager {
         }
 
         space.initialize();
-        if (DEBUG) {
-            String stepMsg = String.format("==================Step 0");
-            logger.logFile(stepMsg + "\n");
-            logger.logFile(space.toString());
-        }
+
 
         errors = errors || !tester.testSpace(0);
 
         while (!endOfSimulation()) {
 
             space.computeNextStep();
-            errors = errors || !tester.testSpace(steps);
+
+            boolean ok = tester.testSpace(steps);
+            errors = errors || !ok;
             pBar.next();
 
             if (DEBUG) {
                 String stepMsg = String.format("==================Step %d", steps);
-                logger.logFile(stepMsg + "\n");
-                logger.logFile(space.toString());
+                // logger.logFile(stepMsg + "\n");
+                // logger.logFile(space.toString());
             }
 
             steps++;
@@ -117,7 +115,6 @@ public class SimulationManager {
                                         "\t-last: %.3f\n" +
                                         "\t-previous: %.3f\n\n",
                                 times.get(times.size() - 1), times.get(times.size() - 2)));
-                return false;
             }
             for (Particle p : space.getParticles()) {
                 if (isOutOfBounds(p)) {
@@ -127,14 +124,13 @@ public class SimulationManager {
                                     "Particle is out of bounds:\n" +
                                             "\tparticle: %s\n\n",
                                     p.toString()));
-                    return false;
                 }
             }
             if (!errors) {
                 testerLogger.logFile("Everything OK\n");
             }
             testerLogger.logFile("-----------------------------------------\n");
-            return true;
+            return !errors;
         }
 
         private boolean timeIsUnordered() {

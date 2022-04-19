@@ -3,6 +3,7 @@ package output;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.List;
 
 import particles.Event;
 import particles.Particle;
@@ -65,16 +66,21 @@ public class SpaceOutputManager extends OutputManager {
         content.append(step).append('\n');
         content.append(e.getTime()).append('\n');
         content.append(p1.getIndex());
-        if (p2 != null) {
+        if (e.isParticleCollision()) {
             content.append(' ').append(p2.getIndex());
         }
         content.append('\n');
-        for (Particle p : e.getParticles()) {
-            content.append(p1.getX()).append(' ')
+        content.append(p1.getX()).append(' ')
                     .append(p1.getY()).append(' ')
                     .append(p1.getVx()).append(' ')
                     .append(p1.getVy()).append('\n');
+        if (e.isParticleCollision()) {
+            content.append(p2.getX()).append(' ')
+                    .append(p2.getY()).append(' ')
+                    .append(p2.getVx()).append(' ')
+                    .append(p2.getVy()).append('\n');
         }
+
         return outputDynamicFile(step, filename, content.toString());
     }
 

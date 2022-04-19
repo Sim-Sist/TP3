@@ -34,8 +34,8 @@ public class Particle {
     }
 
     public void update(Double deltaT) {
-        this.x = this.x + this.velocity * Math.cos(this.speedAngle) * deltaT;
-        this.y = this.y + this.velocity * Math.sin(this.speedAngle) * deltaT;
+        this.x = this.x + getVx() * deltaT;
+        this.y = this.y + getVy() * deltaT;
     }
 
     public void update() {
@@ -54,7 +54,7 @@ public class Particle {
     public void updateVelocity(double vx, double vy) {
         this.velocity = Math.sqrt(vx * vx + vy * vy);
         double theta = Math.atan2(vy, vx);
-        this.speedAngle = theta >= 0 ? theta : 2 * Math.PI + theta;
+        this.speedAngle = theta >= 0 ? theta : (2 * Math.PI + theta);
     }
 
     public int getIndex() {
