@@ -1,4 +1,6 @@
-package main.java.particles;
+package particles;
+
+import particles.fx.Color;
 
 public class Particle {
     private int index;
@@ -6,8 +8,10 @@ public class Particle {
     public double x, y;
     public double radius;
     public double mass;
+    public Color color;
 
-    public Particle(int index, double x, double y, double velocity, double speedAngle, double radius, double mass) {
+    public Particle(int index, double x, double y, double velocity, double speedAngle, double radius, double mass,
+            Color color) {
         this.index = index;
         this.x = x;
         this.y = y;
@@ -17,6 +21,8 @@ public class Particle {
 
         this.radius = radius;
         this.mass = mass;
+
+        this.color = color;
     }
 
     public double seeTravelX(double time) {
@@ -27,9 +33,9 @@ public class Particle {
         return this.y + this.velocity * Math.sin(this.speedAngle) * time;
     }
 
-    public void update(Double time) {
-        this.x = this.x + this.velocity * Math.cos(this.speedAngle) * time;
-        this.y = this.y + this.velocity * Math.sin(this.speedAngle) * time;
+    public void update(Double deltaT) {
+        this.x = this.x + this.velocity * Math.cos(this.speedAngle) * deltaT;
+        this.y = this.y + this.velocity * Math.sin(this.speedAngle) * deltaT;
     }
 
     public void update() {
@@ -47,7 +53,8 @@ public class Particle {
 
     public void updateVelocity(double vx, double vy) {
         this.velocity = Math.sqrt(vx * vx + vy * vy);
-        this.speedAngle = Math.atan2(vy, vx);
+        double theta = Math.atan2(vy, vx);
+        this.speedAngle = theta >= 0 ? theta : 2 * Math.PI + theta;
     }
 
     public int getIndex() {
@@ -97,7 +104,8 @@ public class Particle {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder();
-        str.append(String.format("%d: ", index)).append(String.format("r:%.3f x:%.3f  y:%.3f", radius, x, y));
+        str.append(String.format("%d: ", index))
+                .append(String.format("r:%.3f x:%.3f  y:%.3f vx:%.3f vy:%.3f", radius, x, y, getVx(), getVy()));
         return str.toString();
     }
 

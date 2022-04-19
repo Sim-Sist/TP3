@@ -3,7 +3,7 @@ Header:
     tamaño
     cant de partículas
 Body:
-    radio, color, masa
+    radio, color
 
 dynamic-info
 Body:

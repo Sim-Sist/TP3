@@ -1,6 +1,9 @@
+import particles.fx.Color;
+import simulations.SimulationManager;
 
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello World!");
+        SimulationManager sManager = new SimulationManager();
+        sManager.simulate();
     }
 }

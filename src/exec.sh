@@ -14,4 +14,6 @@ sourcesFileDir=${scriptDir}/utils/sources.txt
 find ${sourceDir} -name '*.java' > ${sourcesFileDir}
 
 javac -d ${classDir} @${sourcesFileDir};
-java -Xmx6G -cp ${classDir} ${mainClass} ${@:1};
+if [ "$1" != "compile" ]; then
+    java -Xmx6G -cp ${classDir} ${mainClass} ${@:1};
+fi

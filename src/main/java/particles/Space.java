@@ -1,69 +1,80 @@
-package main.java.particles;
+package particles;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
-import javafx.scene.effect.ColorInput;
-import main.java.output.*;
+import output.*;
+import particles.fx.Color;
 
 public class Space {
     /*** Simulation parameters ***/
+    private final static double DEFAULT_MIN_RADIUS = 1, DEFAULT_MAX_RADIUS = 10;
+    private final static double DEFAULT_MIN_VELOCITY = 0.03, DEFAULT_MAX_VELOCITY = 0.1;
     private double size;
     private Particle[] particles;
-    private double criticalRadius = 50;
     private Double constantRadius = null;
     private Double constantVelocity = null;
-    private Double bigRadius = 0.7;
-    private Double smallRadius = 0.2;
-    private Double bigMass = 2.0;
-    private Double littleMass = 0.9;
-    private final static double DEFAULT_MIN_RADIUS = 1, DEFAULT_MAX_RADIUS = 10;
+    private double bigRadius;
+    private double smallRadius;
+    private double bigMass;
+    private double littleMass;
     private double minRadius = DEFAULT_MIN_RADIUS, maxRadius = DEFAULT_MAX_RADIUS;
-    private final static double DEFAULT_MIN_VELOCITY = 0.03, DEFAULT_MAX_VELOCITY = 0.1;
     private double minVelocity = DEFAULT_MIN_VELOCITY, maxVelocity = DEFAULT_MAX_VELOCITY;
     /*** Output file vars ***/
     private String staticFileName, dynamicFileName;
     /*** Class variables ***/
     private SpaceOutputManager oManager;
+    private Logger logger = new Logger("space");
     private CollisionManager cManager;
-    private double step;
-    private double noiseLimit;
-    private Set<Event> eventsArray;
+    private int step;
+    private SortedSet<Event> eventsArray = new TreeSet<>(Event::compareTo);
+    private double elapsedSimTime = 0;
     // private Particle[] collisionParticles = new Particle[2];
 
     // Defaults to random radii between 1 and 10, and default random velocities
     // between 0.3 and 1
-    public Space(double size, double criticalRadius, int particlesAmount, double noiseLimit) {
-        System.out.println("Space initialized with:");
-        System.out.println(particlesAmount + " particles");
-        System.out.println("Size of " + size);
-        System.out.println("Noise of " + noiseLimit);
-        System.out.println();
+    public Space(double size, int particlesAmount, double smallRadius, double bigRadius, double littleMass,
+            double bigMass) {
+
+        StringBuilder msg = new StringBuilder();
+        msg.append(String.format(
+                "Space initialized with:\n" +
+                        "- %d particles\n" +
+                        "- Size of %.3f\n" +
+                        "\n",
+                particlesAmount, size));
+        logger.log(msg.toString());
         this.size = size;
-        this.criticalRadius = criticalRadius;
-        this.noiseLimit = noiseLimit;
         this.particles = new Particle[particlesAmount];
+        this.smallRadius = smallRadius;
+        this.bigRadius = bigRadius;
+        this.littleMass = littleMass;
+        this.bigMass = bigMass;
         this.oManager = new SpaceOutputManager(this);
         this.cManager = new CollisionManager(particles, size);
     }
 
-    // Sets constant radius for all particles
-    public void setRadii(double constantRadius) {
-        this.constantRadius = constantRadius;
-    }
+    // // Sets constant radius for all particles
+    // public void setRadii(double constantRadius) {
+    // this.constantRadius = constantRadius;
+    // }
 
-    // Sets particles' radii as a random number between minRadius and maxRadius
-    public void setRadii(double minRadius, double maxRadius) {
-        this.constantRadius = null;// turn off constant radii
-        if (minRadius < 0 || minRadius > maxRadius)
-            throw new RuntimeException("Invalid values for radius' limits");
-        this.minRadius = minRadius;
-        this.maxRadius = maxRadius;
-    }
+    // // Sets particles' radii as a random number between minRadius and maxRadius
+    // public void setRadii(double minRadius, double maxRadius) {
+    // this.constantRadius = null;// turn off constant radii
+    // if (minRadius < 0 || minRadius > maxRadius)
+    // throw new RuntimeException("Invalid values for radius' limits");
+    // this.minRadius = minRadius;
+    // this.maxRadius = maxRadius;
+    // }
 
     public void setVelocities(double constantVelocity) {
         this.constantVelocity = constantVelocity;
@@ -95,12 +106,12 @@ public class Space {
         step = 0;
         Random rnd = new Random();
         for (int i = 0; i < particles.length; i++) {
-
             double radius;
             double mass;
             double velocity;
             double speedAngle;
             double x, y;
+            Color color;
             if (i == 0) {
                 radius = bigRadius;
                 mass = this.bigMass;
@@ -108,15 +119,17 @@ public class Space {
                 speedAngle = 0;
                 x = this.size / 2;
                 y = this.size / 2;
+                color = new Color(0, 0, 0);
             } else {
                 mass = this.littleMass;
-                radius = smallRadius;
-                velocity = (constantVelocity == null)
+                radius = this.smallRadius;
+                velocity = (this.constantVelocity == null)
                         ? (rnd.nextDouble() * (maxVelocity - minVelocity) + minVelocity)
                         : constantVelocity;
                 speedAngle = rnd.nextDouble() * (2 * Math.PI);
-                x = rnd.nextDouble() * size;
-                y = rnd.nextDouble() * size;
+                x = rnd.nextDouble() * (this.size - 2 * radius) + radius;
+                y = rnd.nextDouble() * (this.size - 2 * radius) + radius;
+                color = new Color(255, 255, 255);
             }
 
             Particle p = new Particle(
@@ -126,50 +139,61 @@ public class Space {
                     velocity, // velocity
                     speedAngle, // speedAngle
                     radius,
-                    mass);
+                    mass,
+                    color);
 
-            if (p.x < p.radius || (p.x + p.radius) > this.size || p.y < p.radius || (p.y + p.radius) > size) {
+            if (outOfBounds(p)) {
                 i--;
                 continue;
             }
             if (p.radius > 0 && overlaps(p)) {
                 i--;
                 continue;
-            } else {
-                particles[i] = p;
             }
+
+            if (p == null) {
+                System.out.println("ERROR ON PARTICLE ASIGNMENT");
+                // throw new Exception();
+            }
+            particles[i] = p;
         }
+        this.eventsArray.addAll(cManager.computeCollisions());
         outputInitialState();
-        outputNextState();
-        step++;
+    }
+
+    private boolean outOfBounds(Particle p) {
+        return p.x < p.radius || (p.x + p.radius) > this.size || p.y < p.radius || (p.y + p.radius) > this.size;
+    }
+
+    public Event getNextEvent() {
+        return this.eventsArray.first();
     }
 
     @SuppressWarnings("unchecked")
     public void computeNextStep() {
-        // Si previemente no habia nada, es el primer evento y debo calcular todo
-        if (eventsArray.size() == 0) {
-            this.eventsArray = cManager.computeCollisions();
-        } else {
-            // Si ya tiene cosas dentro, debo recalcular solo para las particulas que
-            // colisionaron.
-            Event prevCollsionEvent = this.eventsArray.stream().min(Event::compareTo).get();
+        // GET NEXT
+        Event collsionEvent = getNextEvent();
+        List<Particle> eventParticles = collsionEvent.getParticles();
 
-            // TODO: Debo borrar elementos del array? va a ser enorme sino.
-            this.eventsArray.addAll(cManager.wallCollision(prevCollsionEvent.getParticles()));
-            this.eventsArray.addAll(cManager.particleCollision(prevCollsionEvent.getParticles()));
-        }
+        double deltaT = cManager.updateTime(collsionEvent);
 
-        Event collsionEvent = this.eventsArray.stream().min(Event::compareTo).get();
-
+        // UPDATE
         // Llevo todas las particulas hasta el punto de la colision.
         for (Particle p : particles) {
-            p.update(collsionEvent.getTime());
+            p.update(deltaT);
         }
-        // Guardo el estado del sistema.
+        // Veo como rebotan las que colisionaron. -> update state
+        cManager.collision(eventParticles);
 
-        // Veo como rebotan las que colisionaron.
-        cManager.collision(collsionEvent.getParticles());
+        // TRACE NEW
+        // Remove all events containing the involved particles, since their paths will
+        // be recalculated
+        this.eventsArray.removeIf(e -> !Collections.disjoint(eventParticles, e.getParticles()));
+        this.eventsArray.addAll(cManager.wallCollision(eventParticles));
+        this.eventsArray.addAll(cManager.particleCollision(eventParticles));
+
         outputNextState();
+
         step++;
     }
 
@@ -179,10 +203,6 @@ public class Space {
 
     public Particle[] getParticles() {
         return particles;
-    }
-
-    public double getCriticalRadius() {
-        return criticalRadius;
     }
 
     public Set<Event> getEvents() {
@@ -224,9 +244,15 @@ public class Space {
     @Override
     public String toString() {
         StringBuilder str = new StringBuilder("Space:\n");
+        str.append("-Particles:\n");
         for (Particle p : particles) {
             str.append(p).append('\n');
         }
+        str.append("-Events:\n");
+        for (Event e : eventsArray) {
+            str.append(e).append('\n');
+        }
+        str.append("-Next Event: ").append(getNextEvent()).append('\n');
         return str.toString();
     }
 }

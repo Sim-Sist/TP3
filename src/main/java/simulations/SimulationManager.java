@@ -1,106 +1,174 @@
-package main.java.simulations;
+package simulations;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
-import main.java.particles.Space;
+
+import output.Logger;
+import particles.Particle;
+import particles.Space;
 
 public class SimulationManager {
     /**** Logging ****/
     private static final boolean DEBUG = true;
     /**** Default Values ****/
-    private static final double SIZE = 20; // L
-    private static final int PARTICLES = 400; // N
-    private static final double CRITICAL_RADIUS = 1;
+    private static final double SIZE = 100; // L
+    private static final int DEFAULT_PARTICLES_AMOUNT = 1000; // N
     private static final double MIN_RADIUS = 1, MAX_RADIUS = 2;
     private static final double CONSTANT_RADIUS = 0;
-    private static final double VELOCITY = 0.03;
-    private static final double NOISE_LIMIT = 3.5;
+    private static final double DEFAULT_MAX_VELOCITY = 0.2;
+    // private static final double MASS = 0.03;
+    private final static double DEFAULT_BIG_MASS = 2.0, DEFAULT_LITTLE_MASS = 0.9;
+    private final static double DEFAULT_BIG_RADIUS = 0.7, DEFAULT_SMALL_RADIUS = 0.2;
 
     /**** Analysis values ****/
-    private static final int MAX_STEPS = 2000;
+    private static final int MAX_STEPS = 1000;
 
     /**** Analysis utils ****/
-    private int steps = 0;
+    private int steps = 1;
 
     /**** Final parameters ****/
     private int usedParticlesAmount;
-    private double usedSize, usedNoise;
+    private double usedSize;
 
     /**** Class components ****/
     private Space space;
+    private Logger logger = new Logger("sim-manager");
+    private Tester tester = new Tester();
 
     public SimulationManager() {
-        usedParticlesAmount = PARTICLES;
+        usedParticlesAmount = DEFAULT_PARTICLES_AMOUNT;
         usedSize = SIZE;
-        usedNoise = NOISE_LIMIT;
     }
 
-    public SimulationManager(int particlesAmount, double size, double noise) {
+    public SimulationManager(int particlesAmount, double size) {
         usedParticlesAmount = particlesAmount;
         usedSize = size;
-        usedNoise = noise;
     }
 
     public void simulate() {
-        System.out.println("Starting simulation...");
+        boolean errors = false;
+        logger.log("Starting simulation...");
 
-        space = new Space(usedSize, CRITICAL_RADIUS, usedParticlesAmount, usedNoise);
-        space.setRadii(CONSTANT_RADIUS);
-        space.setVelocities(VELOCITY);
+        space = new Space(
+                usedSize,
+                usedParticlesAmount,
+                DEFAULT_SMALL_RADIUS,
+                DEFAULT_BIG_RADIUS,
+                DEFAULT_LITTLE_MASS,
+                DEFAULT_BIG_MASS);
+        space.setVelocities(0, DEFAULT_MAX_VELOCITY);
+
         space.initialize();
+        if (DEBUG) {
+            String stepMsg = String.format("==================Step 0");
+            logger.logFile(stepMsg + "\n");
+            logger.log(stepMsg);
+            logger.logFile(space.toString());
+        }
 
-        while (steps < MAX_STEPS) {
-            if (DEBUG)
-                System.out.println(String.format("Step %d", steps));
+        errors = errors || !tester.testSpace(0);
+
+        while (!endOfSimulation()) {
+
             space.computeNextStep();
+            errors = errors || !tester.testSpace(steps);
+
+            if (DEBUG) {
+                String stepMsg = String.format("==================Step %d", steps);
+                logger.logFile(stepMsg + "\n");
+                logger.log(stepMsg);
+                logger.logFile(space.toString());
+            }
+
             steps++;
         }
-        if (DEBUG)
-            System.out.println();
+
+        logger.log(String.format("%sERRORS DETECTED", errors ? "" : "NO "));
 
     }
 
-    public void simulationSuiteForNoise(List<Double> noiseValues) {
-        int simNumber = 0;
-        for (Double noiseValue : noiseValues) {
-            steps = 0;
+    private boolean endOfSimulation() {
+        return steps == MAX_STEPS;
+    }
 
-            space = new Space(usedSize, CRITICAL_RADIUS, usedParticlesAmount, noiseValue);
-            space.setRadii(CONSTANT_RADIUS);
-            space.setVelocities(VELOCITY);
-            space.setStaticFileName(String.format("static-info%03d.txt", simNumber));
-            space.setDynamicFileName(String.format("dynamic-info%03d.txt", simNumber));
-            space.initialize();
+    private class Tester {
+        private List<Double> times = new ArrayList<>();
+        private List<Speed> oldSpeeds = new ArrayList<>();
+        private Logger testerLogger = new Logger("sim-manager|test");
 
-            System.out.println(String.format("Starting simulation %d...", simNumber++));
-            while (steps++ < MAX_STEPS) {
-                if (DEBUG)
-                    System.out.println(String.format("\tStep %d", steps));
-                space.computeNextStep();
+        public boolean testSpace(int step) {
+            boolean errors = false;
+            testerLogger.logFile(String.format("For step %d:\n", step));
+
+            if (timeIsUnordered()) {
+                errors = true;
+                testerLogger.logFile(
+                        String.format(
+                                "Time is not in order:\n" +
+                                        "\t-last: %.3f\n" +
+                                        "\t-previous: %.3f\n\n",
+                                times.get(times.size() - 1), times.get(times.size() - 2)));
+                return false;
             }
-            System.out.println();
+            for (Particle p : space.getParticles()) {
+                if (isOutOfBounds(p)) {
+                    errors = true;
+                    testerLogger.logFile(
+                            String.format(
+                                    "Particle is out of bounds:\n" +
+                                            "\tparticle: %s\n\n",
+                                    p.toString()));
+                    return false;
+                }
+            }
+            if (!errors) {
+                testerLogger.logFile("Everything OK\n");
+            }
+            testerLogger.logFile("-----------------------------------------\n");
+            return true;
         }
+
+        private boolean timeIsUnordered() {
+            return times.size() > 1 && times.get(times.size() - 1) < times.get(times.size() - 2);
     }
 
-    public void simulationSuiteForDensity(List<Double> densityValues) {
-        int simNumber = 0;
-        for (Double densityValue : densityValues) {
-            steps = 0;
+    private boolean isOutOfBounds(Particle p) {
+        return (p.getX() - p.radius) < -0.1 || (p.getX() + p.radius) > space.getSize() + 0.1
+                || (p.getY() - p.radius) < -0.1
+                || (p.getY() + p.radius) > space.getSize() + 0.1;
+    }
+}
 
-            space = new Space(usedSize, CRITICAL_RADIUS, (int) (densityValue * usedSize * usedSize), usedNoise);
-            space.setRadii(CONSTANT_RADIUS);
-            space.setVelocities(VELOCITY);
-            space.setStaticFileName(String.format("static-info%03d.txt", simNumber));
-            space.setDynamicFileName(String.format("dynamic-info%03d.txt", simNumber));
-            space.initialize();
+private class Speed {
+    private double vx;
+    private double vy;
 
-            System.out.println(String.format("Starting simulation %d...", simNumber++));
-            while (steps++ < MAX_STEPS) {
-                if (DEBUG)
-                    System.out.println(String.format("\tStep %d", steps));
-                space.computeNextStep();
-            }
-            if (DEBUG)
-                System.out.println();
+    public Speed(double x, double y) {
+        this.vx = x;
+        this.vy = y;
+    }
+
+    public double getX() {
+        return vx;
+        }
+
+        public double getY() {
+            return vy;
+        }
+
+        public void setX(double x) {
+            this.vx = x;
+
+        }
+
+        public void setY(double y) {
+            this.vy = y;
+        }
+
+        public void update(double x, double y) {
+            this.vx = x;
+            this.vy = y;
         }
     }
 

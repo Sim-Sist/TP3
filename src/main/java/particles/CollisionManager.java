@@ -1,75 +1,110 @@
-package main.java.particles;
+package particles;
 
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.lang.Math;
 
 public class CollisionManager {
     private Double spaceSize;
     private Particle[] particles;
-
+    private double elapsedSimTime = 0;
+    private static final double EPSILON = 0.0001;
     public CollisionManager(Particle[] particles, Double spaceSize) {
         this.particles = particles;
         this.spaceSize = spaceSize;
     }
 
-    public Set<Event> wallCollision() {
-        Set<Event> events = new HashSet<>();
-        for (Particle p : particles) {
+    public double updateTime(Event e) {
+        double deltaT = e.getTime() - elapsedSimTime;
+        elapsedSimTime = e.getTime();
+        return deltaT;
+    }
 
-            Double time = this.getTimeForNearestWall(p);
-            events.add(new Event(time, p));
-        }
-        return events;
+    public Set<Event> wallCollision() {
+        return wallCollision(particles);
+    }
+
+    public Set<Event> wallCollision(List<Particle> p) {
+        return wallCollision((Particle[]) p.toArray(Particle[]::new));
+    }
+
+    public Set<Event> wallCollision(Particle p1) {
+        return wallCollision(new Particle[] { p1 });
     }
 
     public Set<Event> wallCollision(Particle[] p) {
         Set<Event> events = new HashSet<>();
         for (Particle p1 : p) {
-            Double time = this.getTimeForNearestWall(p1);
-            events.add(new Event(time, p1));
+            Double deltaT = this.getTimeForNearestWall(p1);
+            if (deltaT < 0) {
+                System.out.println(String.format("Wall collision time less than 0: %f", deltaT));
+            }
+            events.add(new Event(elapsedSimTime + deltaT, p1));
         }
         return events;
     }
 
+
     public Set<Event> particleCollision() {
-        Set<Event> events = new HashSet<>();
-        for (int i = 0; i < particles.length; i++) {
-            for (int j = i + 1; j < particles.length; j++) {
-                Double time = this.getTimeForNearestCollision(particles[i], particles[j]);
-                if (time != null) {
-                    events.add(new Event(time, particles[i], particles[j]));
-                }
-            }
-        }
-        return events;
+        return particleCollision(particles);
+    }
+
+    public Set<Event> particleCollision(List<Particle> p) {
+        return particleCollision((Particle[]) p.toArray(Particle[]::new));
+
+    }
+
+    public Set<Event> particleCollision(Particle p1, Particle p2) {
+        return particleCollision(new Particle[] { p1, p2 });
     }
 
     public Set<Event> particleCollision(Particle[] p) {
         Set<Event> events = new HashSet<>();
-        for (int i = 0; i < p.length; i++) {
-            for (int j = i + 1; j < particles.length; j++) {
-                Double time = this.getTimeForNearestCollision(p[i], particles[j]);
-                if (time != null) {
-                    events.add(new Event(time, p[i], p[j]));
+        for (Particle p1 : p) {
+            for (Particle p2 : particles) {
+                Double deltaT = this.getTimeForNearestCollision(p1, p2);
+                if (deltaT < 0) {
+                    System.out.println(String.format("Particle collision time less than 0: %f", deltaT));
+                }
+                if (!deltaT.isInfinite()) {
+                    events.add(new Event(elapsedSimTime + deltaT, p1, p2));
                 }
             }
         }
         return events;
     }
 
+
     public Set<Event> computeCollisions() {
         Set<Event> events = new HashSet<>();
-        events.addAll(this.wallCollision());
-        events.addAll(this.particleCollision());
+        List<Particle> particlesToCompute = new LinkedList<>(Arrays.asList(particles));
+
+        for (Particle particle : particles) {
+            particlesToCompute.remove(particle);
+
+            // compute all collisions and keep the first one
+            SortedSet<Event> particleCollisionsSet = new TreeSet<>(Event::compareTo);
+            particleCollisionsSet.addAll(wallCollision(particle));
+            for (Particle p2 : particlesToCompute) {
+                particleCollisionsSet.addAll(particleCollision(particle, p2));
+            }
+
+            events.add(particleCollisionsSet.first());
+        }
         return events;
     }
 
-    public void collision(Particle[] particles) {
-        if (particles[1] == null)
-            updateOnCollision(particles[0]);
+    public void collision(List<Particle> particles) {
+        if (particles.size() == 1)
+            updateOnCollision(particles.get(0));
         else
-            updateOnCollision(particles[0], particles[1]);
+            updateOnCollision(particles.get(0), particles.get(1));
     }
 
     public void updateOnCollision(Particle p1, Particle p2) {
@@ -80,11 +115,19 @@ public class CollisionManager {
         p2.updateVelocity(p2.getVx() + impulseX / p2.getMass(), p2.getVy() + impulseY / p2.getMass());
     }
 
+    private boolean touchesVerticalWall(Particle p) {
+        return (p.getX() - p.radius < EPSILON) || (this.spaceSize - (p.getX() + p.radius) < EPSILON);
+    }
+
+    private boolean touchesHorizontalWall(Particle p) {
+        return (p.getY() - p.radius < EPSILON) || (this.spaceSize - (p.getY() + p.radius) < EPSILON);
+    }
+
     public void updateOnCollision(Particle p) {
-        if ((p.getX() - p.radius < 0) || (p.getX() + p.radius > this.spaceSize)) {
+        if (touchesVerticalWall(p)) {
             p.updateVelocity(-p.getVx(), p.getVy());
         }
-        if ((p.getY() - p.radius < 0) || (p.getY() + p.radius > this.spaceSize)) {
+        if (touchesHorizontalWall(p)) {
             p.updateVelocity(p.getVx(), -p.getVy());
         }
     }
@@ -95,20 +138,34 @@ public class CollisionManager {
 
     private Double getTimeForNearestCollision(Particle p1, Particle p2) {
         if (deltaRV(deltaR(p1, p2), deltaV(p1, p2)) >= 0)
-            return null;
+            return Double.POSITIVE_INFINITY;
         if (valueD(p1, p2) < 0)
-            return null;
+            return Double.POSITIVE_INFINITY;
         return calculatedTime(p1, p2);
     }
 
     private Double getTimeForNearestWall(Particle p) {
-        Double timeX1 = (0 + p.radius - p.getX()) / p.getVx();
-        Double timeX2 = (spaceSize - p.radius - p.getX()) / p.getVx();
-        Double timeY1 = (0 + p.radius - p.getY()) / p.getVy();
-        Double timeY2 = (spaceSize - p.radius - p.getY()) / p.getVy();
+        if (p.getVelocity() == 0) {
+            return Double.POSITIVE_INFINITY;
+        }
+        Double timeX, timeY;
 
-        // Nose por que no lo toma, existe el de doubles.
-        return Math.min(timeX1, Math.min(timeX2, Math.min(timeY1, timeY2)));
+        if (p.getVx() == 0)
+            timeX = Double.POSITIVE_INFINITY;
+        else if (p.getVx() < 0) {
+            timeX = (0 + p.radius - p.getX()) / p.getVx();
+        } else {
+            timeX = (spaceSize - p.radius - p.getX()) / p.getVx();
+        }
+
+        if (p.getVy() == 0)
+            timeY = Double.POSITIVE_INFINITY;
+        else if (p.getVy() < 0) {
+            timeY = (0 + p.radius - p.getY()) / p.getVy();
+        } else {
+            timeY = (spaceSize - p.radius - p.getY()) / p.getVy();
+        }
+        return Math.min(timeX, timeY);
     }
 
     private Double sigma(Particle p1, Particle p2) {
@@ -124,8 +181,8 @@ public class CollisionManager {
 
     private Double[] deltaV(Particle p1, Particle p2) {
         Double[] deltaV = new Double[2];
-        deltaV[0] = p1.velocity - p2.velocity;
-        deltaV[1] = p1.speedAngle - p2.speedAngle;
+        deltaV[0] = p1.getVx() - p2.getVx();
+        deltaV[1] = p1.getVy() - p2.getVy();
         return deltaV;
     }
 
@@ -144,8 +201,8 @@ public class CollisionManager {
     private Double valueD(Particle p1, Particle p2) {
         Double[] deltaRValue = deltaR(p1, p2);
         Double[] deltaVValue = deltaV(p1, p2);
-        return (Math.pow(deltaRV(deltaRValue, deltaVValue), 2)
-                - (deltaV2(deltaVValue) * (deltaR2(deltaRValue) - sigma(p1, p2) * sigma(p1, p2))));
+        return (Math.pow(deltaRV(deltaRValue, deltaVValue), 2.0)
+                - (deltaV2(deltaVValue) * (deltaR2(deltaRValue) - Math.pow(sigma(p1, p2), 2.0))));
     }
 
     private Double calculatedTime(Particle p1, Particle p2) {
@@ -153,6 +210,6 @@ public class CollisionManager {
         Double[] deltaRValue = deltaV(p1, p2);
         Double deltaRVValue = deltaRV(deltaRValue, deltaVValue);
 
-        return -(deltaRVValue + Math.sqrt(valueD(p1, p2))) / deltaV2(deltaVValue);
+        return (deltaRVValue + Math.sqrt(valueD(p1, p2))) / deltaV2(deltaVValue);
     }
 }

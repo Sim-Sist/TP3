@@ -1,11 +1,12 @@
-package main.java.output;
+package output;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import main.java.particles.Particle;
-import main.java.particles.Space;
+import particles.Event;
+import particles.Particle;
+import particles.Space;
 
 public class SpaceOutputManager extends OutputManager {
     private Space s;
@@ -21,85 +22,60 @@ public class SpaceOutputManager extends OutputManager {
     }
 
     public boolean outputInitialState(String filename) {
-        FileWriter fw;
-        try {
-            String filepath = getRoot() + LOCAL_OUTPUT_PATH;
-            File file = new File(filepath, filename);
-            file.createNewFile();
-            fw = new FileWriter(file);
-
-            /**
-             * Header stile goes like:
-             * - Number of particles
-             * - Size of Space
-             * - Length of critical radius
-             * - One free line to put a comment/name. This can also be left blank.
-             */
-            fw.append(Integer.toString(s.getParticles().length)).append('\n');
-            fw.append(Double.toString(s.getSize())).append('\n');
-            fw.append(Double.toString(s.getCriticalRadius())).append('\n');
-            fw.append('\n');
-
-            /**
-             * Body of textfile consists of one line for each particle with its radius
-             */
-
-            for (Particle p : s.getParticles()) {
-                fw.append(String.format("%f\n", p.radius));
-            }
-
-            fw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        /**
+         * static-info
+         * - Header:
+         * -- tamaño
+         * -- cant de partículas
+         * - Body:
+         * -- radio, color
+         */
+        StringBuilder content = new StringBuilder();
+        // Header
+        content.append(s.getSize()).append('\n');
+        content.append(s.getParticles().length).append('\n');
+        // Separator
+        content.append('\n');
+        // Body
+        for (Particle p : s.getParticles()) {
+            content.append(p.radius).append(' ').append(p.color).append('\n');
         }
-        return true;
+        return outputStaticFile(filename, content.toString());
     }
 
-    public boolean outputState(int tn) {
-        return outputState(tn, DYNAMIC_STATE_DEFAULT_FILENAME);
+    public boolean outputState(int step) {
+        return outputState(step, DYNAMIC_STATE_DEFAULT_FILENAME);
     }
 
-    public boolean outputState(int tn, String filename) {
-        String path = getRoot() + LOCAL_OUTPUT_PATH;
-        File f = new File(path, filename);
-        if (tn == 0) {
-            try {
-                f.delete();
-            } catch (SecurityException e) {
-
-            }
-            try {
-                f.createNewFile();
-            } catch (IOException e) {
-                System.out.println("There was an error while creating output file:\n");
-                e.printStackTrace();
-                return false;
-            }
+    public boolean outputState(int step, String filename) {
+        StringBuilder content = new StringBuilder();
+        Event e = s.getNextEvent();
+        Particle p1 = e.getP1(), p2 = e.getP2();
+        /**
+         * dynamic-info
+         * Body:
+         * -- nro evento
+         * -- tc
+         * -- pc1,pc2 #partículas que colisionaron (siempre son dos, salvo por el estado
+         * inicial)
+         * -- x y vx vy #una linea por cada partícula
+         */
+        if (step == 0)
+            content.append('\n');
+        content.append(step).append('\n');
+        content.append(e.getTime()).append('\n');
+        content.append(p1.getIndex());
+        if (p2 != null) {
+            content.append(' ').append(p2.getIndex());
         }
-        FileWriter fw;
-        try {
-            fw = new FileWriter(f, true);
-
-            /**
-             * This file contains a list of entries, each one for a specific time tn. Each
-             * entry goes like:
-             * 
-             * - tn
-             * - One line for each particle with its position and speed (decomposed in x and
-             * y), separated by spaces
-             */
-
-            fw.append(Integer.toString(tn)).append('\n');
-            for (Particle p : s.getParticles()) {
-                fw.append(String.format("%f %f %f %f\n", p.x, p.y, p.getVx(), p.getVy()));
-            }
-            fw.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
+        content.append('\n');
+        for (Particle p : e.getParticles()) {
+            content.append(p1.getX()).append(' ')
+                    .append(p1.getY()).append(' ')
+                    .append(p1.getVx()).append(' ')
+                    .append(p1.getVy()).append('\n');
         }
-        return true;
+        return outputDynamicFile(step, filename, content.toString());
     }
 
 }
