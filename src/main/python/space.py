@@ -78,4 +78,5 @@ for line in static_info_file:
     color = data[6]
     space.add_particle(radio, mass, x, y, vx, vy)
 
-print(space.particles)
+for particle in space.particles:
+    print(particle)

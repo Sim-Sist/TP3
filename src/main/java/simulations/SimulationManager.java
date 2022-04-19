@@ -13,8 +13,8 @@ public class SimulationManager {
     /**** Logging ****/
     private static final boolean DEBUG = true;
     /**** Default Values ****/
-    private static final double SIZE = 500; // L
-    private static final int DEFAULT_PARTICLES_AMOUNT = 10000; // N
+    private static final double SIZE = 20; // L
+    private static final int DEFAULT_PARTICLES_AMOUNT = 10; // N
     private static final double MIN_RADIUS = 1, MAX_RADIUS = 2;
     private static final double CONSTANT_RADIUS = 0;
     private static final double DEFAULT_MAX_VELOCITY = 0.2;
@@ -23,7 +23,7 @@ public class SimulationManager {
     private final static double DEFAULT_BIG_RADIUS = 0.7, DEFAULT_SMALL_RADIUS = 0.2;
 
     /**** Analysis values ****/
-    private static final int MAX_STEPS = 3000;
+    private static final int MAX_STEPS = 100;
 
     /**** Analysis utils ****/
     private int steps = 0;
