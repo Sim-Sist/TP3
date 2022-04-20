@@ -13,8 +13,8 @@ public class SimulationManager {
     /**** Logging ****/
     private static final boolean DEBUG = true;
     /**** Default Values ****/
-    private static final double SIZE = 500; // L
-    private static final int DEFAULT_PARTICLES_AMOUNT = 10000; // N
+    private static final double SIZE = 30; // L
+    private static final int DEFAULT_PARTICLES_AMOUNT = 500; // N
     private static final double MIN_RADIUS = 1, MAX_RADIUS = 2;
     private static final double CONSTANT_RADIUS = 0;
     private static final double DEFAULT_MAX_VELOCITY = 0.2;
@@ -23,7 +23,7 @@ public class SimulationManager {
     private final static double DEFAULT_BIG_RADIUS = 0.7, DEFAULT_SMALL_RADIUS = 0.2;
 
     /**** Analysis values ****/
-    private static final int MAX_STEPS = 3000;
+    private static final int MAX_STEPS = 500;
 
     /**** Analysis utils ****/
     private int steps = 0;
@@ -69,15 +69,14 @@ public class SimulationManager {
 
         space.initialize();
 
-
-        errors = errors || !tester.testSpace(0);
+        // errors = errors || !tester.testSpace(0);
 
         while (!endOfSimulation()) {
 
             space.computeNextStep();
 
-            boolean ok = tester.testSpace(steps);
-            errors = errors || !ok;
+            // boolean ok = tester.testSpace(steps);
+            // errors = errors || !ok;
             pBar.next();
 
             if (DEBUG) {
@@ -135,26 +134,26 @@ public class SimulationManager {
 
         private boolean timeIsUnordered() {
             return times.size() > 1 && times.get(times.size() - 1) < times.get(times.size() - 2);
+        }
+
+        private boolean isOutOfBounds(Particle p) {
+            return (p.getX() - p.radius) < -0.1 || (p.getX() + p.radius) > space.getSize() + 0.1
+                    || (p.getY() - p.radius) < -0.1
+                    || (p.getY() + p.radius) > space.getSize() + 0.1;
+        }
     }
 
-    private boolean isOutOfBounds(Particle p) {
-        return (p.getX() - p.radius) < -0.1 || (p.getX() + p.radius) > space.getSize() + 0.1
-                || (p.getY() - p.radius) < -0.1
-                || (p.getY() + p.radius) > space.getSize() + 0.1;
-    }
-}
+    private class Speed {
+        private double vx;
+        private double vy;
 
-private class Speed {
-    private double vx;
-    private double vy;
+        public Speed(double x, double y) {
+            this.vx = x;
+            this.vy = y;
+        }
 
-    public Speed(double x, double y) {
-        this.vx = x;
-        this.vy = y;
-    }
-
-    public double getX() {
-        return vx;
+        public double getX() {
+            return vx;
         }
 
         public double getY() {

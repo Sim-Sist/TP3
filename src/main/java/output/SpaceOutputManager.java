@@ -70,17 +70,20 @@ public class SpaceOutputManager extends OutputManager {
             content.append(' ').append(p2.getIndex());
         }
         content.append('\n');
-        content.append(p1.getX()).append(' ')
-                    .append(p1.getY()).append(' ')
-                    .append(p1.getVx()).append(' ')
-                    .append(p1.getVy()).append('\n');
-        if (e.isParticleCollision()) {
-            content.append(p2.getX()).append(' ')
-                    .append(p2.getY()).append(' ')
-                    .append(p2.getVx()).append(' ')
-                    .append(p2.getVy()).append('\n');
+        // content.append(p1.getX()).append(' ')
+        // .append(p1.getY()).append(' ')
+        // .append(p1.getVx()).append(' ')
+        // .append(p1.getVy()).append('\n');
+        // if (e.isParticleCollision()) {
+        // content.append(p2.getX()).append(' ')
+        // .append(p2.getY()).append(' ')
+        // .append(p2.getVx()).append(' ')
+        // .append(p2
+        // .getVy()).append('\n');
+        // }
+        for (Particle p : s.getParticles()) {
+            content.append(String.format("%f %f %f %f\n", p.x, p.y, p.getVx(), p.getVy()));
         }
-
         return outputDynamicFile(step, filename, content.toString());
     }
 
