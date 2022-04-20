@@ -29,7 +29,7 @@ public class SpaceOutputManager extends OutputManager {
          * -- tamaño
          * -- cant de partículas
          * - Body:
-         * -- radio, color
+         * -- radio, mass, x, y, vx, vy, color
          */
         StringBuilder content = new StringBuilder();
         // Header
@@ -39,7 +39,13 @@ public class SpaceOutputManager extends OutputManager {
         content.append('\n');
         // Body
         for (Particle p : s.getParticles()) {
-            content.append(p.radius).append(' ').append(p.color).append('\n');
+            content.append(p.radius).append(' ')
+                    .append(p.mass).append(' ')
+                    .append(p.getX()).append(' ')
+                    .append(p.getY()).append(' ')
+                    .append(p.getVx()).append(' ')
+                    .append(p.getVy()).append(' ')
+                    .append(p.color).append('\n');
         }
         return outputStaticFile(filename, content.toString());
     }

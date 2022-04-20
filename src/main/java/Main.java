@@ -1,4 +1,3 @@
-import particles.fx.Color;
 import simulations.SimulationManager;
 
 public class Main {
