@@ -1,6 +1,6 @@
 #!/bin/bash
 
-main_file="space"
+main_file="analyzer"
 
 script_dir=`dirname $0`
 py_dir=${script_dir}/main/python
@@ -12,15 +12,19 @@ function update {
 
 source ${venv_dir}/bin/activate
 
+
 if [ "$1" == "install" ]; then
     module_name=$2
-    req_file=${venv_dir}/requirements.txt
+    req_file=${venv_dir}/requirements.txt    
     if grep -q "${module_name}" "$req_file"; then
        echo "already installed"
+       exit
     else
-        echo -e "${module_name}" >> ${req_file}
+        echo -e "${module_name}" | tr -d '\n' >> ${req_file}
+        package_version=`pip freeze | grep ${module_name} | egrep -o "[0-9|.]*"` 
     fi
-    update;
+    update
+    echo -e "==${package_version}" >> ${req_file}   
     exit
 fi
 

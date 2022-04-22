@@ -9,5 +9,5 @@ dynamic-info
 Body:
     nro evento
     tc
-    pc1,pc2 #partículas que colisionaron (siempre son dos, salvo por el estado inicial)
+    pc1,pc2 #partículas que colisionaron
     x y vx vy #una linea por cada partícula
