@@ -2,7 +2,7 @@ from asyncio import constants
 from curses import pair_content
 from dataclasses import dataclass
 import math
-from statistics import mean
+from statistics import mean, stdev
 from typing import Iterator, List, Tuple
 from scipy import constants
 
@@ -41,15 +41,15 @@ class Velocity:
 
 class Path:
     def __init__(self) -> None:
-        self.positions = []
-        self.displ = []
+        self.positions: List[Position] = []
 
     def add_position(self, pos: Position):
         self.positions.append(pos)
-        self.displ.append(pos.distance_to(self.positions[0]))
 
-    def displacements(self) -> List[float]:
-        return self.displ
+    def get_coordinates(self) -> Tuple[List[float], List[float]]:
+        x = [p.x for p in self.positions]
+        y = [p.y for p in self.positions]
+        return x, y
 
 
 class Particle:
@@ -66,6 +66,10 @@ class Particle:
         self.mass = mass
         self.position = position
         self.velocity = velocity
+        self.original_pos = self.position
+
+    def displacement(self):
+        return self.position.distance_to(self.original_pos)
 
     def update_position(self, pos: Position):
         if pos is not None:
@@ -100,23 +104,12 @@ class Space:
             Particle(index, radio, mass, Position(x, y), Velocity(vx, vy))
         )
 
-    # def update_particles(self, provider: Iterator[Tuple[Position, Velocity]]) -> None:
-    #     self.events += 1
-    #     index = 0
-    #     for pos, velocity in provider:
-    #         if index >= len(self.particles):
-    #             break
-    #         self.update_particle(index, pos, velocity)
-    #         index += 1
-
     def __kinetic_energy(self, p: Particle) -> float:
         return (1 / 2) * p.mass * (p.velocity.module() ** 2)
 
-    def get_big_part_displacements(self) -> List[float]:
-        return self.big_particle_path.displacements()
-
-    def mean_kinetic_energy(self) -> float:
-        return mean(self.__kinetic_energy(p) for p in self.particles)
+    def mean_kinetic_energy(self):
+        data = [self.__kinetic_energy(p) for p in self.particles]
+        return {"value": mean(data), "error": stdev(data)}
 
     def temperature(self) -> float:
         return (2 / 3) * (1 / constants.k) * self.mean_kinetic_energy()  # type: ignore

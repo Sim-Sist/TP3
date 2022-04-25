@@ -14,6 +14,9 @@ public class Logger extends OutputManager {
         this.name = name;
     }
 
+    public void log(StringBuilder builder){
+        log(builder.toString());
+    }
     public void log(String msg) {
         String output = String.format("->%s:\n %s", name.toUpperCase(), msg);
 

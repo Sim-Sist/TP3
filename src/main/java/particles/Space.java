@@ -14,6 +14,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import output.*;
+import output.logging.ConsoleColors;
 import output.logging.Logger;
 import particles.fx.Color;
 
@@ -40,6 +41,8 @@ public class Space {
     private int step;
     private Queue<Event> eventsQueue = new PriorityQueue<>(Event::compareTo);
     private double elapsedSimTime = 0;
+    private int blockedCount = 0;
+    private static final int MAX_BLOCKED_COUNT = 3000;
     // private Particle[] collisionParticles = new Particle[2];
 
     // Defaults to random radii between 1 and 10, and default random velocities
@@ -123,7 +126,7 @@ public class Space {
                 speedAngle = 0;
                 x = this.size / 2;
                 y = this.size / 2;
-                color = new Color(0, 0, 0);
+                color = new Color(234, 78, 36);
             } else {
                 mass = this.littleMass;
                 radius = this.smallRadius;
@@ -133,7 +136,7 @@ public class Space {
                 speedAngle = rnd.nextDouble() * (2 * Math.PI);
                 x = rnd.nextDouble() * (this.size - 2 * radius) + radius;
                 y = rnd.nextDouble() * (this.size - 2 * radius) + radius;
-                color = new Color(255, 255, 255);
+                color = new Color(168, 112, 251);
             }
 
             Particle p = new Particle(
@@ -152,14 +155,22 @@ public class Space {
             }
             if (p.radius > 0 && overlaps(p)) {
                 i--;
+                if(blockedCount++ > MAX_BLOCKED_COUNT){
+//                    this.particles = new Particle[particles.length];
+                    logger.log(
+                            ConsoleColors.addColor(
+                                    "Error: reseting space",
+                                    ConsoleColors.RED_UNDERLINED
+                            )
+                    );
+                    blockedCount = 0;
+                    i = -1;
+                }
                 continue;
             }
 
-            if (p == null) {
-                System.out.println("ERROR ON PARTICLE ASIGNMENT");
-                // throw new Exception();
-            }
             particles[i] = p;
+            blockedCount = 0;
         }
         outputInitialState();
     }
@@ -177,7 +188,8 @@ public class Space {
         if (step == 0) {
             eventsQueue.addAll(cManager.computeAllCollisions());
         }
-        outputNextState();
+        if(step%100== 0)
+            outputNextState();
 
         // GET NEXT
         Event collsionEvent = eventsQueue.poll();

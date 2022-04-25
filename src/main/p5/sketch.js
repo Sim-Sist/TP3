@@ -2,20 +2,20 @@ let static, dynamic;
 
 let cantParticles, canvasSize;
 
-let radios = [],
+let diameters = [],
 	particles = [];
-	events = [];
-	pColor = [];
-	collisionParticles = [];
+events = [];
+pColor = [];
+collisionParticles = [];
 
-RESIZE_FACTOR = 30;
+RESIZE_FACTOR = 120;
 
 /*
  * Movimiento Browniano de una particula
-*/
+ */
 
 function preload() {
-	let simNumber = 0;
+	let simNumber = 4;
 	static = loadStrings(
 		`../output/static-info${simNumber.toString().padStart(3, '0')}.txt`
 	);
@@ -30,7 +30,7 @@ function loadStaticData() {
 
 	for (let i = 0; i < cantParticles; i++) {
 		info = static[i + 3].split(' ');
-		radios[i] = float(info[0]);
+		diameters[i] = 2 * float(info[0]);
 		pColor[i] = info[1];
 	}
 }
@@ -40,11 +40,11 @@ let dynamicIndex = 0;
 function loadDynamicData() {
 	// El archivo de datos dinamicos empieza con un espacio!!
 	for (let i = 0; i < cantParticles; i++) {
-		if(i == 0){
-			events[i] = dynamic[i + 1] // evento 0 tiene guardado el tiempo del primer evento
+		if (i == 0) {
+			events[i] = dynamic[i + 1]; // evento 0 tiene guardado el tiempo del primer evento
 			collisionParticles[dynamicIndex] = dynamic[i + 2].split(' '); // IDs de particulas que colisionaron
 		}
-		
+
 		let positionAndVelocity = dynamic[i + 3].split(' ');
 		//console.log(radios[i])
 
@@ -54,8 +54,8 @@ function loadDynamicData() {
 			float(positionAndVelocity[1]),
 			float(positionAndVelocity[2]),
 			float(positionAndVelocity[3]),
-			radios[i],
-			pColor[i],
+			diameters[i],
+			pColor[i]
 		);
 	}
 	dynamicIndex++;
@@ -64,16 +64,12 @@ function loadDynamicData() {
 function refresh() {
 	let particleIndex = 0;
 
-	let aux = (cantParticles + 3) * dynamicIndex
+	let aux = (cantParticles + 3) * dynamicIndex;
 
-	events[dynamicIndex] = dynamic[aux + 1] // evento n
+	events[dynamicIndex] = dynamic[aux + 1]; // evento n
 	collisionParticles[dynamicIndex] = dynamic[aux + 2].split(' '); // IDs de particulas que colisionaron
 
-	for (
-		let i = aux + 3;
-		i < (cantParticles + 3) * (dynamicIndex + 1);
-		i++
-		) {
+	for (let i = aux + 3; i < (cantParticles + 3) * (dynamicIndex + 1); i++) {
 		let positionAndVelocity = dynamic[i].split(' ');
 
 		//console.log(particles[(i - (cantParticles * dynamicIndex + 1))])
@@ -132,7 +128,7 @@ function draw() {
 		}
 		capturer.capture(document.getElementById('canvas'));
 	}
-	if (frameCount == 499) {
+	if (frameCount == 4999) {
 		noLoop();
 	}
 }
@@ -140,7 +136,7 @@ function draw() {
 class Particle {
 	// ! Mass variable is not changing anything yet.
 	constructor(id, x, y, vx, vy, d, color) {
-		this.id = id
+		this.id = id;
 		this.x = x * RESIZE_FACTOR;
 		this.y = y * RESIZE_FACTOR;
 		this.vx = vx;

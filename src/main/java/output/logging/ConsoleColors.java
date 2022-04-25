@@ -1,6 +1,9 @@
 package output.logging;
 
 public class ConsoleColors {
+    public static String addColor(String text, String color){
+        return new StringBuilder(color).append(text).append(ConsoleColors.RESET).toString();
+    }
     // Reset
     public static final String RESET = "\033[0m"; // Text Reset
 

@@ -21,10 +21,10 @@ if [ "$1" == "install" ]; then
        exit
     else
         echo -e "${module_name}" | tr -d '\n' >> ${req_file}
-        package_version=`pip freeze | grep ${module_name} | egrep -o "[0-9|.]*"` 
+        package_version=`pip freeze | grep ${module_name} | egrep -o "==.*"`
     fi
     update
-    echo -e "==${package_version}" >> ${req_file}   
+    echo -e "${package_version}" >> ${req_file}   
     exit
 fi
 

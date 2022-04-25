@@ -8,8 +8,8 @@ public class Color {
     public static String byteToHex(byte b) {
         char[] hexChars = new char[2];
         int v = b & 0xFF;
-        hexChars[1] = HEX_ARRAY[v >>> 4];
-        hexChars[0] = HEX_ARRAY[v & 0x0F];
+        hexChars[0] = HEX_ARRAY[v >>> 4];
+        hexChars[1] = HEX_ARRAY[v & 0x0F];
 
         return new String(hexChars);
     }
